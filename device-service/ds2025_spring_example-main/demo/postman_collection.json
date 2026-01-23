@@ -1,0 +1,331 @@
+{
+  "info": {
+    "name": "DEMO API POSTMAN \u2014 DEVICES",
+    "_postman_id": "f7e65974-f84e-48df-9711-e796a73206f2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "resource",
+      "value": "devices"
+    },
+    {
+      "key": "deviceId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET \u2013 List devices (200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST \u2013 Create device (201) [valid]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Smart Plug\",\n  \"maxConsumption\": 150.5,\n  \"description\": \"Living room plug\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Created', ()=> pm.response.to.have.status(201));",
+              "let id = null;",
+              "const loc = pm.response.headers.get('Location');",
+              "if (loc) { id = loc.split('/').slice(-1)[0]; }",
+              "else {",
+              "  try {",
+              "    const body = pm.response.json();",
+              "    if (typeof body === 'string') id = body;",
+              "    else if (body && body.id) id = body.id;",
+              "  } catch(e) {}",
+              "}",
+              "pm.expect(id, 'Extracted deviceId').to.be.ok;",
+              "pm.collectionVariables.set('deviceId', id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET \u2013 Get device by ID (200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/{{deviceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "{{deviceId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET \u2013 Type mismatch UUID (400) [MethodArgumentTypeMismatch]",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/not-a-uuid",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "not-a-uuid"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST \u2013 maxConsumption too low (400) [@Positive/@ConsumptionLimit]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Bad Device\",\n  \"maxConsumption\": 0,\n  \"description\": \"invalid\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST \u2013 Missing name (400) [@NotBlank on name]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"maxConsumption\": 50.0\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST \u2013 Malformed JSON (400) [HttpMessageNotReadable]",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"name\": \"X\", \"maxConsumption\": 10.5 "
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "PUT \u2013 Replace device (200)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{deviceId}}\",\n  \"name\": \"Smart Plug v2\",\n  \"maxConsumption\": 160.0,\n  \"description\": \"Updated\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/{{deviceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "{{deviceId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST \u2013 Assign device to user (204)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/{{deviceId}}/assign/{{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "{{deviceId}}",
+            "assign",
+            "{{userId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST \u2013 Unassign device (204)",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/{{deviceId}}/unassign",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "{{deviceId}}",
+            "unassign"
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET \u2013 Devices by user (200)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/by-user/{{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "by-user",
+            "{{userId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DELETE \u2013 Remove device (204)",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/{{deviceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "{{deviceId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "DELETE \u2013 Not found (404)",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/{{resource}}/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "{{resource}}",
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+          ]
+        }
+      }
+    }
+  ]
+}

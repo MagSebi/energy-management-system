@@ -1,0 +1,46 @@
+# Environment variables
+.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+
+# Device simulator trace
+device-simulator/.trace.json
+
+# Build artifacts
+target/
+build/
+dist/
+*.jar
+*.war
+
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+env/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~

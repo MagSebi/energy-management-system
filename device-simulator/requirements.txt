@@ -1,0 +1,6 @@
+# RabbitMQ async client
+aio-pika==9.4.3
+
+# Optional: for better development experience
+python-dotenv==1.0.0
+

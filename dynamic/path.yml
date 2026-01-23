@@ -1,0 +1,125 @@
+http:
+  # Define URL routing rules, middlewares, and services
+  routers:
+    user-router:
+      rule: "Host(`localhost`) && PathPrefix(`/api/user`)" # Match requests to localhost without /api prefix
+      entryPoints:
+        - web # Listen on the web (HTTP) entry point
+      middlewares:
+        - strip-user-prefix
+      service:  user-app # Forward to the nginx service
+
+    device-router:
+      rule: "Host(`localhost`) && PathPrefix(`/api/device`)" # Match requests to localhost with /api prefix
+      entryPoints:
+        - web # Listen on the web (HTTP) entry point
+      middlewares:
+        - strip-device-prefix # Remove /api prefix before forwarding
+      service: device-app
+
+    auth-router:
+      rule: "Host(`localhost`) && PathPrefix(`/api/auth`)" # Match requests to localhost with /api/auth prefix
+      entryPoints:
+        - web # Listen on the web (HTTP) entry point
+      middlewares:
+        - strip-auth-prefix # Remove /api/auth prefix before forwarding
+      service: auth-app # Forward to the auth service
+
+    monitoring-router:
+      rule: "Host(`localhost`) && PathPrefix(`/api/monitoring`)" # Match requests to localhost with /api/monitoring prefix
+      entryPoints:
+        - web # Listen on the web (HTTP) entry point
+      middlewares:
+        - strip-monitoring-prefix # Remove /api/monitoring prefix before forwarding
+      service: monitoring-app # Forward to the monitoring service
+
+    chat-router:
+      rule: "Host(`localhost`) && PathPrefix(`/api/chat`)"
+      entryPoints:
+        - web
+      middlewares:
+        - strip-chat-prefix
+      service: chat-app
+
+    ws-router:
+      rule: "Host(`localhost`) && PathPrefix(`/ws`)"
+      entryPoints:
+        - web
+      service: websocket-app
+
+
+    frontend2-router:
+      rule: "Host(`localhost`) && !PathPrefix(`/api`)" # Match requests to localhost
+      entryPoints:
+        - web # Listen on the web (HTTP) entry point
+      service: frontend2 # Forward to the frontend2 service
+
+  middlewares:
+    strip-user-prefix: # Middleware to remove /api/user prefix
+      stripPrefix:
+        prefixes:
+          - "/api/user"
+
+    strip-device-prefix: # Middleware to remove /api/device prefix
+      stripPrefix:
+        prefixes:
+          - "/api/device"
+
+    strip-auth-prefix: # Middleware to remove /api/auth prefix
+      stripPrefix:
+        prefixes:
+          - "/api/auth"
+
+    strip-monitoring-prefix: # Middleware to remove /api/monitoring prefix
+      stripPrefix:
+        prefixes:
+          - "/api/monitoring"
+
+    strip-chat-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api/chat"
+
+
+#    auth-basic: # Middleware for basic authentication
+#      basicAuth:
+#        users:
+#          - "user:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/" # password = "test"
+
+  services:
+    user-app:
+      loadBalancer:
+        servers:
+          - url: "http://user-app:8080" # Container name solved by Docker DNS
+
+    device-app:
+      loadBalancer:
+        servers:
+          - url: "http://device-app:8080" # Container name solved by Docker DNS
+
+    auth-app:
+      loadBalancer:
+        servers:
+          - url: "http://auth-app:8080" # Container name solved by Docker DNS
+
+    monitoring-app:
+      loadBalancer:
+        servers:
+          - url: "http://monitoring-app-1:8080"
+          - url: "http://monitoring-app-2:8080"
+
+
+    frontend2:
+      loadBalancer:
+        servers:
+          - url: "http://frontend2:80" # Container name solved by Docker DNS
+
+    chat-app:
+      loadBalancer:
+        servers:
+          - url: "http://chat-app:8086"
+
+    websocket-app:
+      loadBalancer:
+        servers:
+          - url: "http://websocket-app:8084"

@@ -1,0 +1,238 @@
+{
+  "info": {
+    "name": "Monitoring Microservice API",
+    "description": "API endpoints for the Energy Management System Monitoring Microservice",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Monitoring Service",
+      "item": [
+        {
+          "name": "Get All Hourly Consumption",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/api/monitoring/hourly-consumption",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["api", "monitoring", "hourly-consumption"]
+            },
+            "description": "Get all hourly energy consumption records"
+          }
+        },
+        {
+          "name": "Get Hourly Consumption by Device",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/api/monitoring/hourly-consumption/device/:deviceId",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["api", "monitoring", "hourly-consumption", "device", ":deviceId"],
+              "variable": [
+                {
+                  "key": "deviceId",
+                  "value": "your-device-uuid-here",
+                  "description": "Device UUID"
+                }
+              ]
+            },
+            "description": "Get hourly consumption for a specific device"
+          }
+        },
+        {
+          "name": "Get Hourly Consumption by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/api/monitoring/hourly-consumption/device/:deviceId/range?start=2025-12-01T00:00:00&end=2025-12-31T23:59:59",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["api", "monitoring", "hourly-consumption", "device", ":deviceId", "range"],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2025-12-01T00:00:00",
+                  "description": "Start date-time (ISO 8601 format)"
+                },
+                {
+                  "key": "end",
+                  "value": "2025-12-31T23:59:59",
+                  "description": "End date-time (ISO 8601 format)"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "deviceId",
+                  "value": "your-device-uuid-here",
+                  "description": "Device UUID"
+                }
+              ]
+            },
+            "description": "Get hourly consumption for a device within a date range"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RabbitMQ Management",
+      "item": [
+        {
+          "name": "Get All Queues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:15672/api/queues",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "15672",
+              "path": ["api", "queues"]
+            },
+            "description": "Get all RabbitMQ queues (requires basic auth: guest/guest)"
+          }
+        },
+        {
+          "name": "Get Device Data Queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:15672/api/queues/%2F/device.data.queue",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "15672",
+              "path": ["api", "queues", "%2F", "device.data.queue"]
+            },
+            "description": "Get device data queue details"
+          }
+        },
+        {
+          "name": "Get Synchronization Queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:15672/api/queues/%2F/synchronization.queue",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "15672",
+              "path": ["api", "queues", "%2F", "synchronization.queue"]
+            },
+            "description": "Get synchronization queue details"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Test Integration",
+      "item": [
+        {
+          "name": "1. Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"TestPass123!\",\n  \"role\": \"CLIENT\",\n  \"name\": \"Test User\",\n  \"address\": \"123 Test Street\",\n  \"age\": 25\n}"
+            },
+            "url": {
+              "raw": "http://localhost/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user (triggers USER_CREATED sync event)"
+          }
+        },
+        {
+          "name": "2. Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login to get JWT token"
+          }
+        },
+        {
+          "name": "3. Create Device (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "description": "Replace with actual JWT token from login"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smart Meter Test\",\n  \"energyConsumption\": 2.5\n}"
+            },
+            "url": {
+              "raw": "http://localhost/api/device/admin/devices",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["api", "device", "admin", "devices"]
+            },
+            "description": "Create a device (triggers DEVICE_CREATED sync event)"
+          }
+        },
+        {
+          "name": "4. Check Monitoring Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/api/monitoring/hourly-consumption",
+              "protocol": "http",
+              "host": ["localhost"],
+              "path": ["api", "monitoring", "hourly-consumption"]
+            },
+            "description": "Verify that data is being collected (wait 10+ minutes after simulator starts)"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
+

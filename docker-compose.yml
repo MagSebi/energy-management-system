@@ -1,0 +1,305 @@
+services:
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proxy-network
+
+  user-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: example-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    container_name: user-db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d example-db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - proxy-network
+
+  user-app:
+    build:
+      context: ./user-service/ds2025_spring_example-release
+      dockerfile: Dockerfile
+    depends_on:
+      user-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    container_name: user-app
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/example-db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      AUTH_SERVICE_URL: http://auth-app:8080
+      INTERNAL_TOKEN: 8e7bb9c7-3f2e-4a9e-9c0f-1d2a4b5c6d7e
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+    networks:
+      - proxy-network
+
+  # Service for device
+  device-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: example-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    container_name: device-db
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d example-db" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - proxy-network
+
+  device-app:
+    build:
+      context: ./device-service/ds2025_spring_example-main
+      dockerfile: Dockerfile
+    depends_on:
+      device-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    container_name: device-app
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://device-db:5432/example-db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+    networks:
+      - proxy-network
+
+  # Authentication service DB
+  auth-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: auth-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    container_name: auth-db
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth-db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - proxy-network
+
+  auth-app:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    container_name: auth-app
+    environment:
+      USER_SERVICE_URL: http://user-app:8080
+      DEVICE_SERVICE_URL: http://device-app:8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth-db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      INTERNAL_TOKEN: 8e7bb9c7-3f2e-4a9e-9c0f-1d2a4b5c6d7e
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+    networks:
+      - proxy-network
+
+  # Monitoring service DB
+  monitoring-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: monitoring-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    container_name: monitoring-db
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d monitoring-db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - proxy-network
+
+  # Monitoring replicas consuming per-replica ingest keys
+  monitoring-app-1:
+    build:
+      context: ./monitoring-service
+      dockerfile: Dockerfile
+    depends_on:
+      monitoring-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    container_name: monitoring-app-1
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monitoring-db:5432/monitoring-db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_QUEUE_DEVICE_DATA: device.data.ingest.1
+      RABBITMQ_EXCHANGE_DEVICE_DATA: device.data.exchange
+      RABBITMQ_ROUTING_KEY_DEVICE_DATA: device.data.ingest.1
+    networks:
+      - proxy-network
+
+  monitoring-app-2:
+    build:
+      context: ./monitoring-service
+      dockerfile: Dockerfile
+    depends_on:
+      monitoring-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    container_name: monitoring-app-2
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monitoring-db:5432/monitoring-db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_QUEUE_DEVICE_DATA: device.data.ingest.2
+      RABBITMQ_EXCHANGE_DEVICE_DATA: device.data.exchange
+      RABBITMQ_ROUTING_KEY_DEVICE_DATA: device.data.ingest.2
+    networks:
+      - proxy-network
+
+  # WebSocket service for real-time energy data
+  websocket-app:
+    build:
+      context: ./websocket-service
+      dockerfile: Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    container_name: websocket-app
+    ports:
+      - "8084:8084"
+    environment:
+      SERVER_PORT: 8084
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+    networks:
+      - proxy-network
+
+  # Customer Support Chat Microservice
+  chat-app:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    container_name: chat-app
+    environment:
+      SERVER_PORT: 8086
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      AI_GEMINI_KEY: ${AI_GEMINI_KEY:-AIzaSyD-unv1lsZgcQ5pEMRCcPyR4z6EIfuzaW4}
+      AI_GEMINI_MODEL: ${AI_GEMINI_MODEL:-gemini-2.5-flash}
+    networks:
+      - proxy-network
+
+  # Load Balancing Service for device data
+  lb-app:
+    build:
+      context: ./load-balancer
+      dockerfile: Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    container_name: lb-app
+    environment:
+      SERVER_PORT: 8090
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+    networks:
+      - proxy-network
+
+  frontend2:
+    build:
+      context: ./frontend2
+      dockerfile: Dockerfile
+    container_name: frontend2
+    networks:
+      - proxy-network
+
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: always
+    ports:
+      - "8081:80" # The HTTP port (changed from 80 to avoid Windows IIS conflict)
+      - "8089:8080" # Dashboard port (changed from 8080 to avoid conflicts)
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Traefik can listen to the Docker events
+      - "./traefik.yml:/etc/traefik/traefik.yml:ro" # Static configuration file
+      - "./dynamic:/etc/traefik/dynamic:ro" # Dynamic configuration files
+      - "./logs:/var/log/traefik" # Log files
+    develop: # Enable live reload of dynamic configuration files on Windows, if using Unix based system needs to be commented out
+      watch:
+        - path: ./dynamic                   # watch the whole folder
+          action: restart
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    name: proxy-network
+    driver: bridge

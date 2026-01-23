@@ -1,0 +1,141 @@
+{
+  "info": {
+    "name": "DEMO API POSTMAN",
+    "_postman_id": "b7f0b8b1-6f0e-4c5b-9f13-people-demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "resource", "value": "people" },
+    { "key": "personId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "GET – List people (200)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/{{resource}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}"] }
+      }
+    },
+    {
+      "name": "POST – Create person (201) [valid]",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Ada Lovelace\",\n  \"address\": \"London\",\n  \"age\": 22\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/{{resource}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Created', ()=> pm.response.to.have.status(201));",
+              "// take the id from Location header OR from body (depends where you set it)",
+              "let id = null;",
+              "const loc = pm.response.headers.get('Location');",
+              "if (loc) { id = loc.split('/').slice(-1)[0]; }",
+              "else {",
+              "  try {",
+              "    const body = pm.response.json();",
+              "    if (typeof body === 'string') id = body;",
+              "    else if (body && body.id) id = body.id;",
+              "  } catch(e) {}",
+              "}",
+              "pm.expect(id, 'Extracted personId').to.be.ok;",
+              "pm.collectionVariables.set('personId', id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET – Get person by ID (200)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/{{resource}}/{{personId}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}", "{{personId}}"] }
+      }
+    },
+    {
+      "name": "GET – Type mismatch UUID (400) [triggers MethodArgumentTypeMismatch]",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/{{resource}}/not-a-uuid", "host": ["{{baseUrl}}"], "path": ["{{resource}}", "not-a-uuid"] }
+      }
+    },
+    {
+      "name": "POST – Age too low (400) [@AgeLimit]",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Tim\",\n  \"address\": \"Nowhere\",\n  \"age\": 16\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/{{resource}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}"] }
+      }
+    },
+    {
+      "name": "POST – Missing name (400) [@NotNull on name]",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"address\": \"Somewhere\",\n  \"age\": 25\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/{{resource}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}"] }
+      }
+    },
+    {
+      "name": "POST – Malformed JSON (400) [triggers HttpMessageNotReadable]",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"name\": \"Bad\", \"address\": \"X\", \"age\": 23 " },
+        "url": { "raw": "{{baseUrl}}/{{resource}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}"] }
+      }
+    },
+    {
+      "name": "PUT – Replace person (204)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{personId}}\",\n  \"name\": \"Ada Byron\",\n  \"address\": \"London\",\n  \"age\": 23\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/{{resource}}/{{personId}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}", "{{personId}}"] }
+      }
+    },
+    {
+      "name": "PATCH – Partial update (204)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"address\": \"New Address\" }" },
+        "url": { "raw": "{{baseUrl}}/{{resource}}/{{personId}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}", "{{personId}}"] }
+      }
+    },
+    {
+      "name": "DELETE – Remove person (204)",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/{{resource}}/{{personId}}", "host": ["{{baseUrl}}"], "path": ["{{resource}}", "{{personId}}"] }
+      }
+    },
+    {
+      "name": "DELETE – Not found (404) [your service throws CustomException NOT_FOUND]",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/{{resource}}/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "host": ["{{baseUrl}}"], "path": ["{{resource}}", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"] }
+      }
+    }
+  ]
+}
